@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+	<meta charset="UTF-8">
+	<title>拼图</title>
+	<style>
+		* {
+			margin: 0;
+			padding: 0;
+		}
+
+		.clearfix:after {
+			visibility: hidden;
+			display: block;
+			font-size: 0;
+			content: " ";
+			clear: both;
+			height: 0;
+		}
+
+		#container {
+			display: block;
+			width: 632px;
+			margin: 0 auto;
+			margin-top: 200px;
+			border: 1px solid #ddd;
+		}
+
+		#box {
+			display: block;
+			width: 360px;
+			height: 360px;
+			position: relative;
+			float: left;
+			margin: 30px;
+			border: 1px solid #ccc;
+		}
+
+		#box div {
+			display: block;
+			position: absolute;
+			box-sizing: border-box;
+		}
+
+		#box div:nth-child(n + 2):hover {
+			cursor: pointer;
+		}
+
+		.info {
+			width: 180px;
+			float: left;
+			margin: 30px 30px 30px 0;
+		}
+
+		.preview {
+			display: block;
+			width: 180px;
+			height: 180px;
+		}
+
+		.preview img {
+			display: block;
+			width: 100%;
+			height: 100%;
+		}
+
+		.step {
+			display: block;
+			width: 180px;
+			margin-top: 67px;
+		}
+
+		.step p {
+			color: #666666;
+			font-size: 16px;
+			text-align: center;
+			line-height: 50px;
+		}
+
+		.step p span {
+			color: #999999;
+			font-size: 30px;
+			font-weight: bold;
+		}
+
+		.setting {
+			display: block;
+			width: 100%;
+		}
+
+		.setting label {
+			width: 60px;
+			float: left;
+			color: #666;
+			font-size: 14px;
+			line-height: 20px;
+		}
+
+		.setting select {
+			width: calc(100% - 60px);
+			float: left;
+			color: #666;
+			font-size: 14px;
+			line-height: 20px;
+		}
+
+		.setting button {
+			width: 100%;
+			float: left;
+			margin-top: 15px;
+			color: #666;
+			font-size: 14px;
+			line-height: 20px;
+		}
+	</style>
+</head>
+<body>
+<div id="container" class="clearfix">
+	<div id="box"></div>
+	<div class="info">
+		<div class="preview">
+			<img alt="">
+			<input type="file" id="imgFile" accept="image/*" capture="camera" onchange="seleteImg(event)">
+		</div>
+		<div class="step">
+			<p>
+				<span id="stepNum">0</span>
+				步数</p>
+		</div>
+		<div class="setting clearfix">
+			<label for="level">阶数:</label>
+			<select name="level" id="level" onchange="init(event)">
+				<option value="2">2</option>
+				<option value="3">3</option>
+				<option value="4">4</option>
+				<option value="5">5</option>
+				<option value="6">6</option>
+				<option value="6">7</option>
+				<option value="6">8</option>
+				<option value="6">9</option>
+				<option value="6">10</option>
+			</select>
+			<button onclick="init(false)">重置</button>
+		</div>
+	</div>
+</div>
+<script>
+
+  // 选中图片
+  function seleteImg(event) {
+    let imgDom = document.querySelector('.preview img');
+    let reader = new FileReader();
+    reader.readAsDataURL(event.target.files[0]);
+    reader.onload = function() {
+      imgDom.src = reader.result;
+      imgDom.onload = function() {
+        return init();
+      }
+    };
+  }
+
+  // 初始化
+  function init(event) {
+    let step = 0;
+    let level = event ? parseInt(event.target.value) : parseInt(document.getElementById('level').value);
+    let cellWidth = 360 / level;
+    let imgDom = document.querySelector('.preview img');
+    let boxDom = document.getElementById('box');
+    let imgWidth = imgDom.naturalWidth / level;
+    let imgHeight = imgDom.naturalHeight / level;
+    document.querySelector('#stepNum').innerHTML = step;
+    if (imgDom.src) {
+      boxDom.onclick = null;
+      boxDom.innerHTML = '';
+      createCell();
+      // upsetCell();
+      upsetCell1();
+      boxDom.onclick = clickCell;
+    }
+
+    // 生成格子
+    function createCell() {
+      let cell = [];
+      let box = document.querySelector('#box');
+      for (let i = 0; i < level * level; i++) {
+        cell.push(i);
+      }
+      cell.forEach((val) => {
+        let left = (val % level);
+        let top = parseInt(val / level);
+        let canvas = document.createElement('canvas');
+        let div = document.createElement('div');
+        div.style.width = cellWidth;
+        div.style.height = cellWidth;
+        div.dataset.index = val;
+        canvas.width = cellWidth;
+        canvas.height = cellWidth;
+        val !== 0 && canvas.getContext('2d').
+            drawImage(imgDom, left * imgWidth, top * imgHeight, imgWidth, imgHeight, 0, 0, cellWidth, cellWidth);
+        div.appendChild(canvas);
+        div.className = 'cell';
+        div.style.top = top * cellWidth + 'px';
+        div.style.left = left * cellWidth + 'px';
+        box.appendChild(div);
+      });
+    }
+
+    // 点击格子
+    function clickCell(event) {
+      let targetDom = event.target.parentNode;
+      let indexDom = document.querySelectorAll('#box div')[0];
+      let current = parseInt(targetDom.dataset.current);
+      let index = parseInt(indexDom.dataset.current);
+      if (index - level === current) {
+        moveCell(targetDom, indexDom, current, index);
+      } else if (index - 1 === current && (current % level != (level - 1))) {
+        moveCell(targetDom, indexDom, current, index);
+      } else if (index + 1 === current && (current % level != 0)) {
+        moveCell(targetDom, indexDom, current, index);
+      } else if (index + level === current) {
+        moveCell(targetDom, indexDom, current, index);
+      }
+    }
+
+    // 移动位置
+    function moveCell(targetDom, indexDom, current, index) {
+      let targetLeft = targetDom.offsetLeft;
+      let indexLeft = indexDom.offsetLeft;
+      let targeTop = targetDom.offsetTop;
+      let indexTop = indexDom.offsetTop;
+      targetDom.dataset.current = index;
+      indexDom.dataset.current = current;
+      targetDom.style.left = indexLeft + 'px';
+      indexDom.style.left = targetLeft + 'px';
+      targetDom.style.top = indexTop + 'px';
+      indexDom.style.top = targeTop + 'px';
+      step++;
+      document.querySelector('#stepNum').innerHTML = step;
+      decide();
+    }
+
+    // 判定是否成功
+    function decide() {
+      let imgList = document.querySelectorAll('#box div');
+      let result = true;
+      imgList.forEach(function(val) {
+        if (val.dataset.index != val.dataset.current) {
+          result = false;
+        }
+      });
+      if (result) {
+        setTimeout(function() {
+          alert(`成功完成,已用${ step }步!`);
+        }, 300);
+      }
+    }
+
+    // 打乱格子
+    function upsetCell() {
+      let imgList = document.querySelectorAll('#box div');
+      let cell = [];
+      for (let i = 0; i < level * level; i++) {
+        cell.push(i);
+      }
+      cell.sort(function() {
+        let num = Math.random();
+        if (num > 0.5) {
+          return 1;
+        } else {
+          return -1;
+        }
+      });
+      cell.forEach(function(val, ind) {
+        let left = parseInt(ind % level);
+        let top = parseInt(ind / level);
+        imgList[val].dataset.current = ind;
+        imgList[val].style.top = top * cellWidth + 'px';
+        imgList[val].style.left = left * cellWidth + 'px';
+      });
+    }
+
+    // 打乱格子(新)
+    function upsetCell1() {
+      let imgList = document.querySelectorAll('#box div');
+      let cell = [];
+      for (let i = 0; i < level * level; i++) {
+        cell.push(i);
+      }
+      confusionCell(0, cell, 0);
+      cell.forEach(function(val, ind) {
+        let left = parseInt(ind % level);
+        let top = parseInt(ind / level);
+        imgList[val].dataset.current = ind;
+        imgList[val].style.top = top * cellWidth + 'px';
+        imgList[val].style.left = left * cellWidth + 'px';
+      });
+    }
+
+    // 随机交换
+    function confusionCell(index, arr, times) {
+      if (times >= level * level * level - 1) {
+        return arr;
+      }
+      let num = [], value = arr[index];
+      if (index - level >= 0) {
+        num.push(1);
+      }
+      if (index - 1 >= 0 && (index % level != 0)) {
+        num.push(2);
+      }
+      if (index + 1 <= (level * level - 1) && (index % level != (level - 1))) {
+        num.push(3);
+      }
+      if (index + level <= (level * level - 1)) {
+        num.push(4);
+      }
+      let key = Math.floor(Math.random() * Math.floor(num.length));
+
+      if (num[key] == 1) {
+        arr[index] = arr[index - level];
+        arr[index - level] = value;
+        times++;
+        return confusionCell(index - level, arr, times);
+      } else if (num[key] == 2) {
+        arr[index] = arr[index - 1];
+        arr[index - 1] = value;
+        times++;
+        return confusionCell(index - 1, arr, times);
+      } else if (num[key] == 3) {
+        arr[index] = arr[index + 1];
+        arr[index + 1] = value;
+        times++;
+        return confusionCell(index + 1, arr, times);
+      } else if (num[key] == 4) {
+        arr[index] = arr[index + level];
+        arr[index + level] = value;
+        times++;
+        return confusionCell(index + level, arr, times);
+      }
+    }
+  }
+
+</script>
+</body>
+</html>
